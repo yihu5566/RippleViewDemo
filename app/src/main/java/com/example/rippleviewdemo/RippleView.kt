@@ -8,6 +8,7 @@ import android.graphics.Path
 import android.os.Handler
 import android.os.Message
 import android.util.AttributeSet
+import android.util.Log
 import android.view.View
 import kotlin.math.roundToInt
 
@@ -27,9 +28,11 @@ class RippleView : View {
     //波起始点
     var mStartPoint: Float = 0f
     //移动速度
-    val SPEED: Float = 1.5f
+    val SPEED: Float = 5.5f
     //博移动的距离
     var mMoveLen: Float = 0f
+    //隐藏一个波长
+    var mLeftHide: Float = 0f
 
     constructor(ctx: Context) : this(ctx, null)
     constructor(context: Context?, attrs: AttributeSet?) : this(context, attrs, 0)
@@ -48,8 +51,7 @@ class RippleView : View {
                             pointList.get(i).setY(mStartPoint)
                         }
                         1 -> pointList.get(i).setY(mStartPoint + mCrestHeight)
-                        3 ->
-                            pointList.get(i).setY(mStartPoint - mCrestHeight)
+                        3 -> pointList.get(i).setY(mStartPoint - mCrestHeight)
                     }
                 }
 
@@ -58,10 +60,10 @@ class RippleView : View {
                     mMoveLen = 0f
                     resetPoints()
                 }
+                invalidate()
             }
 
         }
-        invalidate()
         false
     }
 
@@ -76,8 +78,9 @@ class RippleView : View {
     }
 
     fun resetPoints() {
+        mLeftHide = -mCrestWidth.toFloat()
         for (i in pointList.indices) {
-            pointList.get(i).setX((i * mCrestWidth / 3).toFloat())
+            pointList.get(i).setX((i * mCrestWidth / 4).toFloat()- mCrestWidth)
         }
     }
 
@@ -88,16 +91,19 @@ class RippleView : View {
             viewWidth = measuredWidth
             viewHeight = measuredHeight
             //底部开始
-            mStartPoint = measuredHeight / 2f
+            mStartPoint = measuredHeight.toFloat() / 2
             //波峰高度
-            mCrestHeight = viewHeight / 2.5f
+            mCrestHeight = viewHeight / 15f
             //波峰长度
-            mCrestWidth = measuredWidth
+            mCrestWidth = measuredWidth / 2
+            //隐藏一个波长
+            mLeftHide = -mCrestWidth.toFloat()
             //几个波峰
             val n = (viewWidth / mCrestWidth + 0.5).roundToInt()
-            for (i in 0..n * 4 + 1) {
-                var x: Float = (i * mCrestWidth / 3).toFloat()
-                var y: Float = 0f
+
+            for (i in 0..n * 4 + 4) {
+                var x = (i * mCrestWidth / 4).toFloat() - mCrestWidth
+                var y = 0f
                 when (i % 4) {
                     0, 2 -> y = mStartPoint
                     1 -> y = mStartPoint + mCrestHeight
@@ -111,11 +117,14 @@ class RippleView : View {
     override fun onDraw(canvas: Canvas?) {
         mRipplePath.reset()
         mRipplePath.moveTo(pointList[0].x, pointList[0].y)
+        Log.d("RippleView", pointList.size.toString())
+
         for (i in 0..(pointList.size - 3) step 2) {
+            Log.d("RippleView", i.toString())
             mRipplePath.quadTo(pointList[i + 1].x, pointList[i + 1].y, pointList[i + 2].x, pointList[i + 2].y)
         }
-        mRipplePath.lineTo(pointList.get(pointList.size - 1).getX(), viewHeight / 2.0f)
-        mRipplePath.lineTo(mStartPoint, viewHeight / 2.0f)
+        mRipplePath.lineTo(pointList.get(pointList.size - 1).getX(), viewHeight.toFloat())
+        mRipplePath.lineTo(mLeftHide, viewHeight.toFloat())
         mRipplePath.close()
         canvas!!.drawPath(mRipplePath, mPaint)
         mHandler.sendEmptyMessageDelayed(1, 10)
